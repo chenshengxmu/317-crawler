@@ -21,6 +21,7 @@ A comprehensive news aggregation and search system for Chinese mainstream news w
 - 🕷️ Automated web crawling from multiple Chinese news sources
 - 🔍 Full-text search with Chinese language support (Elasticsearch + IK Analysis)
 - 🚀 RESTful API with FastAPI
+- 🌐 Web frontend with Flask (search UI, article detail, statistics)
 - 📊 Deduplication and content quality control
 - ⏰ Scheduled crawling with APScheduler
 - 🐳 Docker containerization for easy deployment
@@ -31,6 +32,7 @@ A comprehensive news aggregation and search system for Chinese mainstream news w
 - **Scrapy** - Web crawling framework
 - **Elasticsearch 8.12** - Storage and search engine
 - **FastAPI** - REST API framework
+- **Flask** - Web frontend
 - **Jieba** - Chinese text segmentation
 - **Docker** - Containerization
 
@@ -71,7 +73,7 @@ docker-compose up -d
 curl -X GET "localhost:9200/_cluster/health?wait_for_status=yellow&timeout=50s"
 
 # Install IK Analysis plugin for Chinese text
-docker exec -it news-crawler-elasticsearch /usr/share/elasticsearch/bin/elasticsearch-plugin install https://github.com/medcl/elasticsearch-analysis-ik/releases/download/v8.12.0/elasticsearch-analysis-ik-8.12.0.zip
+docker exec -it news-crawler-elasticsearch /usr/share/elasticsearch/bin/elasticsearch-plugin install https://release.infinilabs.com/analysis-ik/stable/elasticsearch-analysis-ik-8.12.0.zip
 
 # Restart Elasticsearch
 docker restart news-crawler-elasticsearch
@@ -83,25 +85,37 @@ python scripts/init_elasticsearch.py
 ### 4. Run the Crawler
 
 ```bash
-# Test a single spider
-python scripts/run_crawler.py --spider sina
+# Fetch article URLs for the past 30 days (step 1)
+python scripts/fetch_tech_urls.py --days 30 --output tech_urls.json
 
-# Or use Scrapy directly
-cd crawler
-scrapy crawl sina
+# Crawl article content and index into Elasticsearch (step 2)
+python scripts/run_crawler.py --spider url_list
+
+# Or crawl Sina news homepage directly
+python scripts/run_crawler.py --spider sina
 ```
 
 ### 5. Start the API Server
 
 ```bash
-# Run the API server
+# Run the FastAPI server (port 8000)
 uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
 
 # Access the API documentation
 # Open http://localhost:8000/docs in your browser
 ```
 
-### 6. Start the Scheduler (Optional)
+### 6. Start the Web Frontend
+
+```bash
+# Run the Flask frontend (port 5001)
+python web/app.py
+
+# Open in browser
+# http://localhost:5001
+```
+
+### 7. Start the Scheduler (Optional)
 
 ```bash
 # Run the scheduler for automated crawling
@@ -119,8 +133,11 @@ crawler/
 │   ├── pipelines.py    # Data processing pipelines
 │   └── middlewares.py  # Custom middlewares
 ├── storage/             # Elasticsearch integration
-├── api/                 # FastAPI application
+├── api/                 # FastAPI REST API
 │   └── routers/        # API endpoints
+├── web/                 # Flask web frontend
+│   ├── app.py          # Flask application
+│   └── templates/      # Jinja2 HTML templates
 ├── processing/          # Text processing utilities
 ├── scheduler/           # Scheduled crawling tasks
 ├── utils/              # Common utilities
