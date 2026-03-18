@@ -2,6 +2,20 @@
 
 A comprehensive news aggregation and search system for Chinese mainstream news websites (Sina, NetEase, Tencent News).
 
+## Screenshots
+
+### Homepage
+![Homepage](docs/screenshots/homepage.png)
+
+### Search Results
+![Search Results](docs/screenshots/search.png)
+
+### Article Detail
+![Article Detail](docs/screenshots/article.png)
+
+### Statistics
+![Statistics](docs/screenshots/stats.png)
+
 ## Features
 
 - 🕷️ Automated web crawling from multiple Chinese news sources
