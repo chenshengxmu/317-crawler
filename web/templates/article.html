@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}{{ article.title }} — 新闻搜索{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 800px;">
+  <div style="margin-bottom: 16px; font-size: 13px; color: var(--muted);">
+    <a href="/">首页</a> ›
+    <a href="/search?q={{ article.category }}">{{ article.category }}</a> ›
+    <span>文章详情</span>
+  </div>
+
+  <div class="card">
+    <div class="article-header">
+      <h1 class="article-title">{{ article.title }}</h1>
+      <div class="article-meta">
+        <span>来源：<strong>{{ {'sina': '新浪新闻'}.get(article.source, article.source) }}</strong></span>
+        {% if article.author and article.author not in ('新浪新闻', '新浪科技', '未知') %}
+          <span>作者：<strong>{{ article.author }}</strong></span>
+        {% endif %}
+        <span>发布：<strong>{{ article.publish_time[:16] }}</strong></span>
+        <span class="cat" style="background:var(--tag-bg);color:var(--tag-fg);padding:2px 10px;border-radius:20px;">{{ article.category }}</span>
+      </div>
+    </div>
+
+    {% if article.summary %}
+    <div style="background:#f9f9f9;border-left:3px solid var(--red);padding:12px 16px;margin-bottom:20px;border-radius:0 4px 4px 0;font-size:14px;color:#555;line-height:1.7;">
+      {{ article.summary }}
+    </div>
+    {% endif %}
+
+    {% if article.images %}
+    <div style="margin-bottom: 20px;">
+      {% for img in article.images[:1] %}
+        <img src="{{ img }}" alt="" style="max-width:100%;border-radius:4px;display:block;" onerror="this.style.display='none'">
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="article-body">
+      {% for para in article.content.split('\n') %}
+        {% if para.strip() %}
+          <p>{{ para.strip() }}</p>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <div class="article-source-link">
+      <a href="{{ article.url }}" target="_blank" rel="noopener">
+        🔗 查看原文 → {{ article.url[:70] }}{% if article.url|length > 70 %}…{% endif %}
+      </a>
+    </div>
+  </div>
+
+  <div style="margin-top: 20px; display: flex; gap: 12px;">
+    <a href="javascript:history.back()" style="font-size:14px;color:var(--muted);">← 返回</a>
+    <a href="/search?q={{ article.category }}" style="font-size:14px;">更多{{ article.category }}新闻 →</a>
+  </div>
+</div>
+{% endblock %}

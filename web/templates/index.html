@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}新闻搜索{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="hero">
+    <div class="hero-logo">新闻搜索</div>
+    <div class="hero-sub">搜索新浪科技最新资讯，覆盖过去 30 天 · 共 {{ stats.get('total_articles', 0) | int }} 篇文章</div>
+
+    <form class="hero-search" action="/search" method="get">
+      <input name="q" placeholder="输入关键词，如：人工智能、华为、大模型…" autocomplete="off" autofocus>
+      <button type="submit">搜索</button>
+    </form>
+
+    <div class="hot-tags">
+      <span>热门：</span>
+      {% for word in ['人工智能', '大模型', '华为', '机器人', 'DeepSeek', '英伟达', '手机', '新能源汽车', '苹果', '特斯拉'] %}
+        <a class="hot-tag" href="/search?q={{ word }}">{{ word }}</a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-num">{{ stats.get('total_articles', 0) | int }}</div>
+      <div class="stat-label">收录文章</div>
+    </div>
+    {% for source, count in (stats.get('breakdown', {}) or {}).items() %}
+    <div class="stat-card">
+      <div class="stat-num">{{ count }}</div>
+      <div class="stat-label">{{ {'sina': '新浪新闻'}.get(source, source) }}</div>
+    </div>
+    {% endfor %}
+    {% for cat, count in (categories.get('breakdown', {}) or {}).items() %}
+    <div class="stat-card">
+      <div class="stat-num">{{ count }}</div>
+      <div class="stat-label">{{ cat }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}新闻搜索{% endblock %}</title>
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red:    #e8192c;
+      --red-dk: #c0101f;
+      --bg:     #f5f5f5;
+      --card:   #ffffff;
+      --border: #e0e0e0;
+      --text:   #1a1a1a;
+      --muted:  #666;
+      --link:   #1a56db;
+      --tag-bg: #eef2ff;
+      --tag-fg: #3730a3;
+      --radius: 8px;
+      --shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+    body { font-family: "PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+           background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+    a { color: var(--link); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Header ── */
+    header {
+      background: var(--red);
+      padding: 0 24px;
+      display: flex; align-items: center; gap: 24px;
+      height: 56px; position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    }
+    .logo { color: #fff; font-size: 20px; font-weight: 700; letter-spacing: .5px; white-space: nowrap; }
+    .logo span { opacity: .75; font-weight: 400; font-size: 14px; margin-left: 6px; }
+
+    /* header search bar */
+    .header-search { flex: 1; max-width: 600px; display: flex; }
+    .header-search input {
+      flex: 1; padding: 7px 14px; border: none; border-radius: var(--radius) 0 0 var(--radius);
+      font-size: 14px; outline: none;
+    }
+    .header-search button {
+      padding: 7px 18px; background: var(--red-dk); color: #fff; border: none;
+      border-radius: 0 var(--radius) var(--radius) 0; cursor: pointer; font-size: 14px;
+    }
+    .header-search button:hover { background: #9b0c18; }
+
+    nav { margin-left: auto; display: flex; gap: 4px; }
+    nav a { color: rgba(255,255,255,.85); padding: 6px 12px; border-radius: 4px; font-size: 14px; }
+    nav a:hover { background: rgba(255,255,255,.15); text-decoration: none; color: #fff; }
+
+    /* ── Layout ── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+    .layout { display: grid; grid-template-columns: 1fr 280px; gap: 24px; }
+    @media (max-width: 768px) { .layout { grid-template-columns: 1fr; } }
+
+    /* ── Cards ── */
+    .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; }
+
+    /* ── Result item ── */
+    .result-item { border-bottom: 1px solid var(--border); padding: 18px 0; }
+    .result-item:last-child { border-bottom: none; }
+    .result-title { font-size: 17px; font-weight: 600; margin-bottom: 6px; line-height: 1.4; }
+    .result-title a { color: var(--text); }
+    .result-title a:hover { color: var(--red); text-decoration: none; }
+    .result-title em { color: var(--red); font-style: normal; }
+    .result-summary { font-size: 14px; color: var(--muted); margin-bottom: 8px; line-height: 1.6; }
+    .result-summary em { color: var(--red); font-style: normal; font-weight: 500; }
+    .result-meta { font-size: 12px; color: #999; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .result-meta .source { color: var(--red); font-weight: 500; }
+    .result-meta .cat {
+      background: var(--tag-bg); color: var(--tag-fg);
+      padding: 1px 8px; border-radius: 20px; font-size: 11px;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar-section { margin-bottom: 20px; }
+    .sidebar-title { font-size: 13px; font-weight: 700; color: var(--muted);
+                     text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px;
+                     padding-bottom: 8px; border-bottom: 2px solid var(--red); }
+    .filter-group { margin-bottom: 14px; }
+    .filter-label { font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #444; }
+    .filter-options { display: flex; flex-direction: column; gap: 4px; }
+    .filter-options label { font-size: 13px; color: #555; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .filter-options input[type=checkbox] { accent-color: var(--red); }
+    .date-row { display: flex; gap: 8px; align-items: center; }
+    .date-row input { flex: 1; padding: 5px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; }
+    .date-row span { font-size: 12px; color: var(--muted); }
+    .btn-apply {
+      width: 100%; padding: 8px; background: var(--red); color: #fff; border: none;
+      border-radius: var(--radius); cursor: pointer; font-size: 13px; margin-top: 12px;
+    }
+    .btn-apply:hover { background: var(--red-dk); }
+    .btn-clear { width: 100%; padding: 6px; background: none; color: var(--muted);
+                 border: 1px solid var(--border); border-radius: var(--radius);
+                 cursor: pointer; font-size: 12px; margin-top: 6px; }
+    .btn-clear:hover { border-color: #999; color: #333; }
+
+    /* ── Sort bar ── */
+    .sort-bar {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+      padding-bottom: 14px; border-bottom: 1px solid var(--border);
+    }
+    .sort-bar .count { font-size: 14px; color: var(--muted); flex: 1; }
+    .sort-bar .count strong { color: var(--text); }
+    .sort-links { display: flex; gap: 4px; }
+    .sort-links a {
+      font-size: 13px; padding: 4px 12px; border-radius: 4px;
+      color: var(--muted); border: 1px solid transparent;
+    }
+    .sort-links a.active { color: var(--red); border-color: var(--red); font-weight: 600; }
+    .sort-links a:hover { text-decoration: none; color: var(--red); }
+
+    /* ── Pagination ── */
+    .pagination { display: flex; justify-content: center; gap: 6px; margin-top: 24px; flex-wrap: wrap; }
+    .pagination a, .pagination span {
+      padding: 6px 12px; border-radius: 4px; font-size: 14px;
+      border: 1px solid var(--border); color: var(--muted);
+    }
+    .pagination a:hover { border-color: var(--red); color: var(--red); text-decoration: none; }
+    .pagination .current { background: var(--red); color: #fff; border-color: var(--red); font-weight: 600; }
+    .pagination .disabled { opacity: .4; pointer-events: none; }
+
+    /* ── Hero (index) ── */
+    .hero { text-align: center; padding: 60px 20px 40px; }
+    .hero-logo { font-size: 42px; font-weight: 800; color: var(--red); letter-spacing: -1px; }
+    .hero-sub { color: var(--muted); font-size: 15px; margin-top: 8px; margin-bottom: 32px; }
+    .hero-search { max-width: 600px; margin: 0 auto; display: flex; box-shadow: 0 2px 12px rgba(0,0,0,.12); border-radius: var(--radius); overflow: hidden; }
+    .hero-search input {
+      flex: 1; padding: 14px 20px; border: none; font-size: 16px; outline: none;
+    }
+    .hero-search button {
+      padding: 14px 28px; background: var(--red); color: #fff; border: none;
+      font-size: 16px; cursor: pointer; font-weight: 600;
+    }
+    .hero-search button:hover { background: var(--red-dk); }
+
+    .hot-tags { margin-top: 28px; }
+    .hot-tags span { font-size: 13px; color: var(--muted); margin-right: 10px; }
+    .hot-tag {
+      display: inline-block; padding: 4px 14px; margin: 4px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; font-size: 13px; color: #444;
+      transition: all .15s;
+    }
+    .hot-tag:hover { border-color: var(--red); color: var(--red); text-decoration: none; background: #fff5f5; }
+
+    /* ── Stats cards ── */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--card); border-radius: var(--radius); padding: 20px; text-align: center; box-shadow: var(--shadow); }
+    .stat-num { font-size: 32px; font-weight: 800; color: var(--red); }
+    .stat-label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+    /* ── Article detail ── */
+    .article-header { margin-bottom: 20px; }
+    .article-title { font-size: 24px; font-weight: 700; line-height: 1.4; margin-bottom: 12px; }
+    .article-meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted);
+                    padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .article-meta strong { color: var(--text); }
+    .article-body { font-size: 16px; line-height: 1.9; color: #333; }
+    .article-body p { margin-bottom: 14px; }
+    .article-source-link { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 13px; }
+
+    /* ── Bar chart ── */
+    .bar-item { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 13px; }
+    .bar-label { width: 90px; text-align: right; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bar-track { flex: 1; background: #f0f0f0; border-radius: 4px; height: 18px; overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--red); border-radius: 4px; min-width: 2px; transition: width .4s; }
+    .bar-count { width: 40px; font-weight: 600; color: var(--text); }
+
+    /* ── Trending tags ── */
+    .trend-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .trend-tag {
+      padding: 5px 14px; border-radius: 20px; font-size: 13px;
+      background: var(--tag-bg); color: var(--tag-fg); cursor: pointer;
+    }
+    .trend-tag:hover { background: var(--red); color: #fff; text-decoration: none; }
+
+    /* ── No results ── */
+    .no-results { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .no-results .icon { font-size: 48px; margin-bottom: 16px; }
+    .no-results h3 { font-size: 18px; margin-bottom: 8px; color: #444; }
+
+    /* ── Highlight snippet ── */
+    .snippet em { color: var(--red); font-style: normal; font-weight: 500; }
+
+    /* ── Took badge ── */
+    .took { font-size: 11px; color: #bbb; margin-left: 8px; }
+
+    footer { text-align: center; padding: 24px; font-size: 12px; color: #bbb; border-top: 1px solid var(--border); margin-top: 40px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">新闻搜索 <span>NewsSearch</span></div>
+  {% if request.endpoint != 'index' %}
+  <form class="header-search" action="/search" method="get">
+    <input name="q" value="{{ request.args.get('q','') }}" placeholder="搜索新闻…" autocomplete="off">
+    <button type="submit">搜索</button>
+  </form>
+  {% endif %}
+  <nav>
+    <a href="/">首页</a>
+    <a href="/stats">统计</a>
+  </nav>
+</header>
+
+{% block content %}{% endblock %}
+
+<footer>© 2026 新闻搜索 · 数据来源：新浪新闻</footer>
+</body>
+</html>

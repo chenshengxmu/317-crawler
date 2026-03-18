@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}{{ query }} — 新闻搜索{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="layout">
+
+    <!-- ── Main results ── -->
+    <main>
+      {% if results.get('error') %}
+        <div class="card no-results">
+          <div class="icon">⚠️</div>
+          <h3>搜索服务暂时不可用</h3>
+          <p>{{ results.error }}</p>
+        </div>
+
+      {% elif results.get('total', 0) == 0 %}
+        <div class="card no-results">
+          <div class="icon">🔍</div>
+          <h3>没有找到"{{ query }}"相关结果</h3>
+          <p>建议换个关键词试试，或减少筛选条件</p>
+        </div>
+
+      {% else %}
+        <div class="card">
+          <!-- Sort bar -->
+          <div class="sort-bar">
+            <div class="count">
+              找到 <strong>{{ results.total }}</strong> 条结果
+              <span class="took">{{ results.took }}ms</span>
+            </div>
+            <div class="sort-links">
+              <a href="/search?q={{ query }}&sort=relevance{% if date_from %}&from={{ date_from }}{% endif %}{% if date_to %}&to={{ date_to }}{% endif %}"
+                 class="{{ 'active' if sort_by == 'relevance' else '' }}">相关度</a>
+              <a href="/search?q={{ query }}&sort=publish_time{% if date_from %}&from={{ date_from }}{% endif %}{% if date_to %}&to={{ date_to }}{% endif %}"
+                 class="{{ 'active' if sort_by == 'publish_time' else '' }}">最新</a>
+            </div>
+          </div>
+
+          <!-- Results -->
+          {% for item in results.get('results', []) %}
+          <div class="result-item">
+            <div class="result-title">
+              {% set hl_title = item.highlight.title[0] if item.highlight and item.highlight.title else none %}
+              <a href="/article/{{ item.id }}">
+                {% if hl_title %}{{ hl_title | safe }}{% else %}{{ item.title }}{% endif %}
+              </a>
+            </div>
+
+            <div class="result-summary snippet">
+              {% if item.highlight and item.highlight.content %}
+                {% for frag in item.highlight.content[:2] %}
+                  …{{ frag | safe }}…
+                {% endfor %}
+              {% else %}
+                {{ item.summary[:160] }}{% if item.summary | length > 160 %}…{% endif %}
+              {% endif %}
+            </div>
+
+            <div class="result-meta">
+              <span class="source">{{ {'sina': '新浪新闻'}.get(item.source, item.source) }}</span>
+              <span class="cat">{{ item.category }}</span>
+              <span>{{ item.publish_time[:10] }}</span>
+              {% if item.author and item.author not in ('新浪新闻', '新浪科技', '未知') %}
+                <span>{{ item.author }}</span>
+              {% endif %}
+              <a href="/article/{{ item.id }}" style="margin-left:auto;font-size:12px;color:var(--red);">阅读全文 →</a>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if total_pages > 1 %}
+        <div class="pagination">
+          {% set pbase = "/search?q=" ~ query ~ "&sort=" ~ sort_by ~ ("&from=" ~ date_from if date_from else "") ~ ("&to=" ~ date_to if date_to else "") %}
+          {% if page > 1 %}
+            <a href="{{ pbase }}&page={{ page - 1 }}">‹ 上一页</a>
+          {% else %}
+            <span class="disabled">‹ 上一页</span>
+          {% endif %}
+
+          {% set start = [1, page - 3] | max %}
+          {% set end   = [total_pages, page + 3] | min %}
+          {% if start > 1 %}<a href="{{ pbase }}&page=1">1</a>{% if start > 2 %}<span>…</span>{% endif %}{% endif %}
+
+          {% for p in range(start, end + 1) %}
+            {% if p == page %}
+              <span class="current">{{ p }}</span>
+            {% else %}
+              <a href="{{ pbase }}&page={{ p }}">{{ p }}</a>
+            {% endif %}
+          {% endfor %}
+
+          {% if end < total_pages %}{% if end < total_pages - 1 %}<span>…</span>{% endif %}<a href="{{ pbase }}&page={{ total_pages }}">{{ total_pages }}</a>{% endif %}
+
+          {% if page < total_pages %}
+            <a href="{{ pbase }}&page={{ page + 1 }}">下一页 ›</a>
+          {% else %}
+            <span class="disabled">下一页 ›</span>
+          {% endif %}
+        </div>
+        {% endif %}
+      {% endif %}
+    </main>
+
+    <!-- ── Sidebar ── -->
+    <aside>
+      <div class="card">
+        <form action="/search" method="get" id="filter-form">
+          <input type="hidden" name="q" value="{{ query }}">
+          <input type="hidden" name="sort" value="{{ sort_by }}">
+
+          <div class="sidebar-section">
+            <div class="sidebar-title">筛选</div>
+
+            <!-- Date range -->
+            <div class="filter-group">
+              <div class="filter-label">日期范围</div>
+              <div class="date-row">
+                <input type="date" name="from" value="{{ date_from }}" max="2026-12-31">
+                <span>至</span>
+                <input type="date" name="to" value="{{ date_to }}" max="2026-12-31">
+              </div>
+            </div>
+
+            <!-- Source -->
+            <div class="filter-group">
+              <div class="filter-label">来源</div>
+              <div class="filter-options">
+                {% set src_counts = results.get('aggregations', {}).get('sources', {}) %}
+                {% for src, cnt in src_counts.items() %}
+                <label>
+                  <input type="checkbox" name="source" value="{{ src }}"
+                         {{ 'checked' if src in selected_sources else '' }}>
+                  {{ {'sina': '新浪新闻'}.get(src, src) }}
+                  <span style="color:#bbb;margin-left:auto;font-size:11px;">{{ cnt }}</span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- Category -->
+            <div class="filter-group">
+              <div class="filter-label">分类</div>
+              <div class="filter-options">
+                {% set cat_counts = results.get('aggregations', {}).get('categories', {}) %}
+                {% for cat, cnt in cat_counts.items() %}
+                <label>
+                  <input type="checkbox" name="cat" value="{{ cat }}"
+                         {{ 'checked' if cat in selected_cats else '' }}>
+                  {{ cat }}
+                  <span style="color:#bbb;margin-left:auto;font-size:11px;">{{ cnt }}</span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+
+            <button class="btn-apply" type="submit">应用筛选</button>
+            <a href="/search?q={{ query }}"><button class="btn-clear" type="button">清除筛选</button></a>
+          </div>
+        </form>
+
+        <!-- Aggregation bar chart -->
+        {% if results.get('aggregations', {}).get('categories') %}
+        <div class="sidebar-section" style="margin-top:20px;">
+          <div class="sidebar-title">分类分布</div>
+          {% set cat_items = results.aggregations.categories.items() | list %}
+          {% set max_val = cat_items | map(attribute=1) | max %}
+          {% for cat, cnt in cat_items %}
+          <div class="bar-item">
+            <div class="bar-label">{{ cat }}</div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width: {{ (cnt / max_val * 100) | int }}%"></div>
+            </div>
+            <div class="bar-count">{{ cnt }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </aside>
+
+  </div>
+</div>
+{% endblock %}

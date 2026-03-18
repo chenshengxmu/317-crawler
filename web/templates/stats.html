@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}数据统计 — 新闻搜索{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h2 style="margin-bottom:24px;font-size:20px;">数据统计</h2>
+
+  <!-- Overview cards -->
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-num">{{ sources.get('total_articles', 0) }}</div>
+      <div class="stat-label">收录文章总数</div>
+    </div>
+    {% for src, cnt in (sources.get('breakdown', {}) or {}).items() %}
+    <div class="stat-card">
+      <div class="stat-num">{{ cnt }}</div>
+      <div class="stat-label">{{ {'sina': '新浪新闻'}.get(src, src) }}</div>
+    </div>
+    {% endfor %}
+    {% for cat, cnt in (categories.get('breakdown', {}) or {}).items() %}
+    <div class="stat-card">
+      <div class="stat-num">{{ cnt }}</div>
+      <div class="stat-label">{{ cat }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+
+    <!-- Source breakdown -->
+    <div class="card">
+      <div class="sidebar-title" style="margin-bottom:16px;">来源分布</div>
+      {% set src_items = (sources.get('breakdown', {}) or {}).items() | list %}
+      {% if src_items %}
+        {% set max_s = src_items | map(attribute=1) | max %}
+        {% for src, cnt in src_items %}
+        <div class="bar-item">
+          <div class="bar-label">{{ {'sina': '新浪新闻'}.get(src, src) }}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:{{ (cnt/max_s*100)|int }}%"></div></div>
+          <div class="bar-count">{{ cnt }}</div>
+        </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+
+    <!-- Category breakdown -->
+    <div class="card">
+      <div class="sidebar-title" style="margin-bottom:16px;">分类分布</div>
+      {% set cat_items = (categories.get('breakdown', {}) or {}).items() | list %}
+      {% if cat_items %}
+        {% set max_c = cat_items | map(attribute=1) | max %}
+        {% for cat, cnt in cat_items %}
+        <div class="bar-item">
+          <div class="bar-label">{{ cat }}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:{{ (cnt/max_c*100)|int }}%"></div></div>
+          <div class="bar-count">{{ cnt }}</div>
+        </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- Trending keywords -->
+  {% if trending and not trending.get('error') %}
+  <div class="card" style="margin-top:24px;">
+    <div class="sidebar-title" style="margin-bottom:16px;">
+      近 7 天热门关键词
+      <span style="font-size:12px;color:#bbb;font-weight:400;margin-left:8px;">共 {{ trending.get('total_articles', 0) }} 篇文章</span>
+    </div>
+    <div class="trend-tags">
+      {% for kw in trending.get('trending_keywords', []) %}
+        <a class="trend-tag" href="/search?q={{ kw.keyword }}">
+          {{ kw.keyword }}
+          <span style="font-size:11px;opacity:.7;margin-left:4px;">{{ kw.doc_count }}</span>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
