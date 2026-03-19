@@ -97,9 +97,13 @@ def fetch_latest_urls(pages: int = 1) -> list:
 
 def run_scrapy(url_items: list) -> int:
     """用 Scrapy CrawlerProcess 抓取文章正文并写入 ES，返回成功入库数量。"""
+    import os
     import tempfile
     from scrapy.crawler import CrawlerProcess
     from scrapy.utils.project import get_project_settings
+
+    # Ensure get_project_settings() finds scrapy.cfg in the project root
+    os.environ.setdefault('SCRAPY_SETTINGS_MODULE', 'crawler.settings')
 
     # 写临时 URL 文件供 spider 读取
     tmp = tempfile.NamedTemporaryFile(
